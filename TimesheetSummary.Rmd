@@ -1,0 +1,154 @@
+---
+title: "Timesheet Summary"
+output: slidy_presentation
+css: "slidy_presentation_css.css"
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+``` {r NicsDataPrep}
+
+library(readr)
+library(ggplot2)
+
+# Import the timesheet data
+TimesheetData <- read_csv("TimesheetData.csv", col_types = cols(Date = col_date(format = "%d/%m/%Y"), Month = col_integer(), Week = col_integer(), Year = col_integer()))
+
+# Create a summary of hours by week
+HoursByWeek <- aggregate(TimesheetData$Hours, by=list(Category=TimesheetData$Week), FUN=sum)
+
+# Rename the column headings of the HoursByWeek data set to Week and TotalHours
+names(HoursByWeek) <- c("Week", "TotalHours")
+
+# Create a summary of hours by person
+HoursByPerson <- aggregate(TimesheetData$Hours, by=list(Category=TimesheetData$Person), FUN=sum)
+
+# Rename the column headings of the HoursByPerson data set to Person and TotalHours
+names(HoursByPerson) <- c("Person", "TotalHours")
+
+# Create a summary of hours by project
+HoursByProject <- aggregate(TimesheetData$Hours, by=list(Category=TimesheetData$Project), FUN=sum)
+
+# Rename the column headings of the HoursByProject data set to Project and TotalHours
+names(HoursByProject) <- c("Project", "TotalHours")
+
+```
+
+## What's this presentation about?
+
+This is a summary of some dummy timesheet data to illustrate how the data can be visualised using an interactive presentation using R and Shiny.
+
+The presentation imports a CSV file of the dummy timesheet data, creates a plot for each aspect (week, person, project), a dashboard of the 3 graphs arranged in a grid format, and then an interactive Shiny app allowing the user to change the colours of the bars in a bar chart.
+
+## Total Hours By Week
+
+```{r HoursByWeekPlot, echo=FALSE, message=FALSE, fig.width=6, fig.height=5}
+
+# Create and display a bar chart showing the HoursByWeek data
+HoursByWeekPlot <- ggplot(HoursByWeek, aes(x = Week, y = TotalHours)) +
+  geom_bar(stat = "identity", fill = "#e1ad46") +
+  geom_text(aes(label = TotalHours), vjust = 1.6, color = "white", size = 4.5) +
+  # ggtitle("Total Hours By Week") +
+  theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=0)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.background = element_blank()) +  
+  theme(axis.text.y = element_blank(),axis.ticks=element_blank()) + 
+  theme(axis.text.x = element_text(size=12, color = "#666666")) +
+  theme(axis.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=14)) +
+  labs(y = "Total Hours")
+
+HoursByWeekPlot
+
+```
+
+## Total Hours By Person
+
+```{r HoursByPersonPlot, echo=FALSE, message=FALSE, fig.width=6, fig.height=5}
+
+# Create and display a bar chart showing the HoursByPerson data
+HoursByPersonPlot <- ggplot(HoursByPerson, aes(x = Person, y = TotalHours)) +
+  geom_bar(stat = "identity", fill = "#49a4aa") +
+  geom_text(aes(label = TotalHours), vjust = 1.6, color = "white", size = 4.5) +
+  # ggtitle("Total Hours By Person") +
+  theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=0)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.background = element_blank()) +  
+  theme(axis.text.y = element_blank(),axis.ticks=element_blank()) + 
+  theme(axis.text.x = element_text(size=12, color = "#666666")) +
+  theme(axis.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=14)) +
+  labs(y = "Total Hours")
+
+HoursByPersonPlot
+
+```
+
+## Total Hours By Project
+
+```{r HoursByProjectPlot, echo=FALSE, message=FALSE, fig.width=6, fig.height=5}
+
+# Create and display a bar chart showing the HoursByProject data
+HoursByProjectPlot <- ggplot(HoursByProject, aes(x = Project, y = TotalHours)) +
+  geom_bar(stat = "identity", fill = "#dd0244") +
+  geom_text(aes(label = TotalHours), vjust = 1.6, color = "white", size = 4.5) +
+  # ggtitle("Total Hours By Project") +
+  theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=0)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.background = element_blank()) +  
+  theme(axis.text.y = element_blank(),axis.ticks=element_blank()) + 
+  theme(axis.text.x = element_text(size=12, color = "#666666")) +
+  theme(axis.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=14)) +
+  labs(y = "Total Hours")
+
+HoursByProjectPlot
+
+```
+
+## Dashboard
+
+```{r Dashboard, echo=FALSE, message=FALSE, fig.width=12}
+library(gridExtra)
+
+# Display the 3 bar charts on one page in a grid format (2 rows and 2 columns)
+grid.arrange(HoursByWeekPlot, HoursByPersonPlot, HoursByProjectPlot, nrow = 2, ncol = 2)
+
+```
+
+## Interactive Chart (Shiny App)
+
+Use the drop down below to change the colour of this chart.
+
+```{r InteractiveProjectPlot_shiny}
+library(shiny)
+library(ggplot2)
+
+shinyApp(
+  ui = fluidPage(
+    # Allow the user to choose a colour (hex value) from a drop down.
+    selectInput("colour", "Choose a colour", choices = c("#666666", "#e1ad46", "#dd0244")),
+    plotOutput("NicsProjectPlot")
+  ),
+  
+  server = function(input, output){
+    
+    output$NicsProjectPlot <- renderPlot(
+    
+    # Display a chart showing "Total Hours By Project"" and change the colour of the bars to be the colour chosen by the user
+    ggplot(HoursByProject, aes(x = Project, y = TotalHours)) +
+  geom_bar(stat = "identity", fill = input$colour) +
+  geom_text(aes(label = TotalHours), vjust = 1.6, color = "white", size = 4.5) +
+  ggtitle("Total Hours By Project") +
+  theme(plot.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=24, hjust=0)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(panel.background = element_blank()) +  
+  theme(axis.text.y = element_blank(),axis.ticks=element_blank()) + 
+  theme(axis.text.x = element_text(size=12, color = "#666666")) +
+  theme(axis.title = element_text(family = "Trebuchet MS", color="#666666", face="bold", size=14)) +
+  labs(y = "Total Hours")
+    
+    )
+  }
+)
+```
